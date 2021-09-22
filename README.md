@@ -1,5 +1,6 @@
 # Asset Bundle Manager (ABM)
-Yet another asset bundle manager for Unity.
+Asset bundle manager for Unity.
+Supports Google Play Asset Delivery (Android) and On Demand Resources (iOS).
 
 
 ## Why
@@ -17,7 +18,11 @@ This module pairs well with Unity's [Asset Bundle Browser](https://github.com/Un
 ## How
 
 ### Initializing
-First you need to build your bundles.  By default the ABB puts bundles in `PROJECT\AssetBundles\PLATFORM` and ABM can take advantage of it.
+Integrate 
+* Android - [Google Play Asset Delivery](https://developer.android.com/guide/playcore/asset-delivery/integrate-unity)
+* iOS - [On Demand Resources](https://docs.unity3d.com/2019.4/Documentation/Manual/AppThinning.html)
+
+First you need to build your bundles. By default the ABB puts bundles in `PROJECT\AssetBundles\PLATFORM` and ABM can take advantage of it.
 
 Once the bundles are built you can start accessing them with the manager.
 

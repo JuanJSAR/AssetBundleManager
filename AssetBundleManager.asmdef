@@ -1,3 +1,7 @@
 ﻿{
-	"name": "AssetBundleManager"
+	"name": "AssetBundleManager",
+	"references": [
+        "Google.Play.AssetDelivery",
+        "Google.Play.Common"
+    ]
 }

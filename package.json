@@ -1,19 +1,25 @@
 {
-    "name": "com.sadpandastudios.asset-bundle-manager",
+    "name": "com.miniit.asset-bundle-manager",
     "displayName": "Asset Bundle Manager",
-    "description": "Yet another asset bundle manager for Unity.",
-    "version": "1.1.1",
+    "description": "Supports Google Play Asset Delivery (Android) and On Demand Resources (iOS).\n\nThis is an extended version of Asset Bundle Manager by Kevin Yockey (https://github.com/SadPandaStudios/AssetBundleManager).",
+    "version": "1.0.0",
     "unity": "2017.1",
     "license": "MIT",
     "repository": {
       "type": "git",
-      "url": "https://github.com/SadPandaStudios/AssetBundleManager"
+      "url": "https://github.com/Mini-IT/AssetBundleManager"
     },
-    "author": "Kevin Yockey <foddermk@gmail.com> (https://github.com/foddermk)",
-    "contributors": [
-        "giawa (https://github.com/giawa)",
-        "danoli3 (https://github.com/danoli3)",
-        "RDeluxe (https://github.com/RDeluxe)"
-    ],
-    "dependencies": {}
-  }
+    "dependencies": {},
+	"samples": [
+	{
+      "displayName": "iOS Build Script",
+      "description": "Needed for iOS build. Integrate int into your project.",
+      "path": "Samples~/iOSBuildScript"
+    },
+    {
+      "displayName": "Examples",
+      "description": "Sample initialization and usind Asset Bundle Manager",
+      "path": "Samples~/Examples"
+    }
+  ]
+}

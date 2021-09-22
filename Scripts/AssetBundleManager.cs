@@ -269,6 +269,7 @@ namespace AssetBundles
             handler.Handle(new AssetBundleDownloadCommand {
                 BundleName = manifestName,
                 Version = version,
+                AssetDeliveryEnabled = false,
                 OnComplete = manifest => {
                     var maxIndex = baseUri.Length - 1;
                     if (manifest == null && uriIndex < maxIndex && version > 1) {
@@ -404,6 +405,7 @@ namespace AssetBundles
 
             var mainBundle = new AssetBundleDownloadCommand {
                 BundleName = bundleName,
+                AssetDeliveryEnabled = (Manifest != null),
                 Hash = downloadSettings == DownloadSettings.UseCacheIfAvailable ? Manifest.GetAssetBundleHash(bundleName) : default(Hash128),
                 OnComplete = bundle => OnDownloadComplete(bundleName, bundle)
             };
