@@ -1,10 +1,7 @@
 # Asset Bundle Manager (ABM)
 Asset bundle manager for Unity.
+
 Supports Google Play Asset Delivery (Android) and On Demand Resources (iOS).
-
-
-## Why
-We felt the AssetBundleManager provided by Unity was complicated and out-dated...  So like typical programmers we decided to write our own!  We wanted something with few frills and easier to trace & maintain.
 
 
 ## Requirements
