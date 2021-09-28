@@ -19,69 +19,73 @@ namespace AssetBundles
         public uint Version;
         public Action<AssetBundle> OnComplete;
 		public bool AssetDeliveryEnabled;
-    }
+		public Func<float> DownloadProgressGetter { get; internal set; }
+	}
 
-    public class AssetBundleDownloader : ICommandHandler<AssetBundleDownloadCommand>
-    {
-        private const int MAX_RETRY_COUNT = 3;
-        private const float RETRY_WAIT_PERIOD = 1;
-        private const int MAX_SIMULTANEOUS_DOWNLOADS = 4;
+	public class AssetBundleDownloader : ICommandHandler<AssetBundleDownloadCommand>
+	{
+		private const int MAX_RETRY_COUNT = 3;
+		private const float RETRY_WAIT_PERIOD = 1;
+		private const int MAX_SIMULTANEOUS_DOWNLOADS = 4;
 
-        private static readonly Hash128 DEFAULT_HASH = default(Hash128);
+		private static readonly Hash128 DEFAULT_HASH = default(Hash128);
 
-        private static readonly long[] RETRY_ON_ERRORS = {
-            503 // Temporary Server Error
+		private static readonly long[] RETRY_ON_ERRORS = {
+			503 // Temporary Server Error
         };
 
-        private string baseUri;
-        private Action<IEnumerator> coroutineHandler;
+		private string baseUri;
+		private Action<IEnumerator> coroutineHandler;
 
-        private int activeDownloads = 0;
-        private Queue<IEnumerator> downloadQueue = new Queue<IEnumerator>();
-        private bool cachingDisabled;
+		private int activeDownloads = 0;
+		private Queue<IEnumerator> downloadQueue = new Queue<IEnumerator>();
+		private bool cachingDisabled;
 
-        /// <summary>
-        ///     Creates a new instance of the AssetBundleDownloader.
-        /// </summary>
-        /// <param name="baseUri">Uri to use as the base for all bundle requests.</param>
-        public AssetBundleDownloader(string baseUri)
-        {
-            this.baseUri = baseUri;
+		/// <summary>
+		///     Creates a new instance of the AssetBundleDownloader.
+		/// </summary>
+		/// <param name="baseUri">Uri to use as the base for all bundle requests.</param>
+		public AssetBundleDownloader(string baseUri)
+		{
+			this.baseUri = baseUri;
 
 #if UNITY_EDITOR
-            if (!Application.isPlaying)
-                coroutineHandler = EditorCoroutine.Start;
-            else
+			if (!Application.isPlaying)
+				coroutineHandler = EditorCoroutine.Start;
+			else
 #endif
-                coroutineHandler = AssetBundleDownloaderMonobehaviour.Instance.HandleCoroutine;
+				coroutineHandler = AssetBundleDownloaderMonobehaviour.Instance.HandleCoroutine;
 
-            if (!this.baseUri.EndsWith("/")) {
-                this.baseUri += "/";
-            }
-        }
+			if (!this.baseUri.EndsWith("/")) {
+				this.baseUri += "/";
+			}
+		}
 
-        /// <summary>
-        ///     Begin handling of a AssetBundleDownloadCommand object.
-        /// </summary>
-        public void Handle(AssetBundleDownloadCommand cmd)
-        {
-            InternalHandle(Download(cmd, 0));
-        }
+		/// <summary>
+		///     Begin handling of a AssetBundleDownloadCommand object.
+		/// </summary>
+		public void Handle(AssetBundleDownloadCommand cmd)
+		{
+			InternalHandle(Download(cmd, 0));
+		}
 
-        private void InternalHandle(IEnumerator downloadCoroutine)
-        {
-            if (activeDownloads < MAX_SIMULTANEOUS_DOWNLOADS) {
-                activeDownloads++;
-                coroutineHandler(downloadCoroutine);
-            } else {
-                downloadQueue.Enqueue(downloadCoroutine);
-            }
-        }
+		private void InternalHandle(IEnumerator downloadCoroutine)
+		{
+			if (activeDownloads < MAX_SIMULTANEOUS_DOWNLOADS) {
+				activeDownloads++;
+				coroutineHandler(downloadCoroutine);
+			} else {
+				downloadQueue.Enqueue(downloadCoroutine);
+			}
+		}
+
+		private IEnumerator PlayAssetDeliveryLoadAssetBundleCoroutine(AssetBundleDownloadCommand cmd, Action<AssetBundle> callback)
+		{
 
 #if UNITY_ANDROID
-		private IEnumerator PlayAssetDeliveryLoadAssetBundleCoroutine(string assetBundleName, Action<AssetBundle> callback)
-		{
-			PlayAssetBundleRequest bundleRequest = PlayAssetDelivery.RetrieveAssetBundleAsync(assetBundleName);
+			PlayAssetBundleRequest bundleRequest = PlayAssetDelivery.RetrieveAssetBundleAsync(cmd.BundleName);
+
+			cmd.DownloadProgressGetter = () => bundleRequest != null ? bundleRequest.DownloadProgress : 0.0f;
 
 			while (!bundleRequest.IsDone)
 			{
@@ -119,14 +123,13 @@ namespace AssetBundles
 
 			// Request was successful. Retrieve AssetBundle from request.AssetBundle.
 			callback?.Invoke(bundleRequest.AssetBundle);
-		}
 
 #elif UNITY_IOS && ENABLE_IOS_ON_DEMAND_RESOURCES
 
-		private IEnumerator PlayAssetDeliveryLoadAssetBundleCoroutine(string assetBundleName, Action<AssetBundle> callback)
-		{
 			// Create the request
-			OnDemandResourcesRequest request = OnDemandResources.PreloadAsync(new string[] { assetBundleName });
+			OnDemandResourcesRequest request = OnDemandResources.PreloadAsync(new string[] { cmd.BundleName });
+
+			cmd.DownloadProgressGetter = () => request != null ? request.progress : 0.0f;
 
 			// Wait until request is completed
 			yield return request;
@@ -136,7 +139,7 @@ namespace AssetBundles
 			// Check for errors
 			if (string.IsNullOrEmpty(request.error))
 			{
-				bundle = AssetBundle.LoadFromFile("res://" + assetBundleName);
+				bundle = AssetBundle.LoadFromFile("res://" + cmd.BundleName);
 			}
 			else
 			{
@@ -146,8 +149,8 @@ namespace AssetBundles
 			callback?.Invoke(bundle);
 
 			request.Dispose();
-		}
 #endif
+		}
 
 		private IEnumerator Download(AssetBundleDownloadCommand cmd, int retryCount)
         {
@@ -165,7 +168,7 @@ namespace AssetBundles
 				{
 					Debug.Log("[AssetBundleDownloader] Download - Try loading from play store asset delivery");
 
-					yield return PlayAssetDeliveryLoadAssetBundleCoroutine(cmd.BundleName, (b) => { bundle = b; });
+					yield return PlayAssetDeliveryLoadAssetBundleCoroutine(cmd, (b) => { bundle = b; });
 
 					Debug.Log($"[AssetBundleDownloader] Download - Asset delivery loading finished. Result = {(bundle != null)}");
 				}
@@ -213,6 +216,7 @@ namespace AssetBundles
 #else
 				req.Send();
 #endif
+				cmd.DownloadProgressGetter = () => req != null ? req.downloadProgress : 0.0f;
 
 				while (!req.isDone)
 				{
@@ -278,7 +282,16 @@ namespace AssetBundles
 				}
 			}
 
-            try
+			if (bundle != null)
+			{
+				cmd.DownloadProgressGetter = () => 1.0f;
+			}
+			else
+			{
+				cmd.DownloadProgressGetter = () => 0.0f;
+			}
+
+			try
 			{
                 cmd.OnComplete(bundle);
             }

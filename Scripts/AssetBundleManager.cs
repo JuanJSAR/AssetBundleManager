@@ -237,7 +237,7 @@ namespace AssetBundles
             if (downloadsInProgress.TryGetValue(MANIFEST_DOWNLOAD_IN_PROGRESS_KEY, out inProgress)) {
                 inProgress.References++;
                 inProgress.OnComplete += onComplete;
-                return;
+				return;
             }
 
             downloadsInProgress.Add(MANIFEST_DOWNLOAD_IN_PROGRESS_KEY, new DownloadInProgressContainer(onComplete));
@@ -260,11 +260,14 @@ namespace AssetBundles
 
         private void GetManifestInternal(string manifestName, uint version, int uriIndex)
         {
-            handler = new AssetBundleDownloader(baseUri[uriIndex]);
-
-            if (Application.isEditor == false) {
-                handler = new StreamingAssetsBundleDownloadDecorator(manifestName, platformName, handler, defaultPrioritizationStrategy);
-            }
+			if (Application.isEditor)
+			{
+				handler = new AssetBundleDownloader(baseUri[uriIndex]);
+			}
+			else
+			{
+				handler = new StreamingAssetsBundleDownloadDecorator(manifestName, platformName, handler, defaultPrioritizationStrategy);
+			}
 
             handler.Handle(new AssetBundleDownloadCommand {
                 BundleName = manifestName,
@@ -345,72 +348,69 @@ namespace AssetBundles
             }
         }
 
-        /// <summary>
-        ///     Downloads an AssetBundle or returns a cached AssetBundle if it has already been downloaded.
-        ///     Remember to call <see cref="UnloadBundle(UnityEngine.AssetBundle,bool)" /> for every bundle you download once you
-        ///     are done with it.
-        /// </summary>
-        /// <param name="bundleName">Name of the bundle to download.</param>
-        /// <param name="onComplete">Action to perform when the bundle has been successfully downloaded.</param>
-        public void GetBundle(string bundleName, Action<AssetBundle> onComplete)
+		/// <summary>
+		///     Downloads an AssetBundle or returns a cached AssetBundle if it has already been downloaded.
+		///     Remember to call <see cref="UnloadBundle(UnityEngine.AssetBundle,bool)" /> for every bundle you download once you
+		///     are done with it.
+		/// </summary>
+		/// <param name="bundleName">Name of the bundle to download.</param>
+		/// <param name="onComplete">Action to perform when the bundle has been successfully downloaded.</param>
+		public void GetBundle(string bundleName, Action<AssetBundle> onComplete)
+		{
+			GetBundle(bundleName, onComplete, DownloadSettings.UseCacheIfAvailable);
+		}
+
+		/// <summary>
+		///     Downloads an AssetBundle or returns a cached AssetBundle if it has already been downloaded.
+		///     Remember to call <see cref="UnloadBundle(UnityEngine.AssetBundle,bool)" /> for every bundle you download once you
+		///     are done with it.
+		/// </summary>
+		/// <param name="bundleName">Name of the bundle to download.</param>
+		/// <param name="onComplete">Action to perform when the bundle has been successfully downloaded.</param>
+		/// <param name="downloadSettings">
+		///     Tell the function to use a previously downloaded version of the bundle if available.
+		///     Important!  If the bundle is currently "active" (it has not been unloaded) then the active bundle will be used
+		///     regardless of this setting.  If it's important that a new version is downloaded then be sure it isn't active.
+		/// </param>
+		public DownloadCommandWrapper GetBundle(string bundleName, Action<AssetBundle> onComplete, DownloadSettings downloadSettings)
         {
             if (Initialized == false) {
                 Debug.LogError("AssetBundleManager must be initialized before you can get a bundle.");
                 onComplete(null);
-                return;
+                return null;
             }
 
-            GetBundle(bundleName, onComplete, DownloadSettings.UseCacheIfAvailable);
-        }
-
-        /// <summary>
-        ///     Downloads an AssetBundle or returns a cached AssetBundle if it has already been downloaded.
-        ///     Remember to call <see cref="UnloadBundle(UnityEngine.AssetBundle,bool)" /> for every bundle you download once you
-        ///     are done with it.
-        /// </summary>
-        /// <param name="bundleName">Name of the bundle to download.</param>
-        /// <param name="onComplete">Action to perform when the bundle has been successfully downloaded.</param>
-        /// <param name="downloadSettings">
-        ///     Tell the function to use a previously downloaded version of the bundle if available.
-        ///     Important!  If the bundle is currently "active" (it has not been unloaded) then the active bundle will be used
-        ///     regardless of this setting.  If it's important that a new version is downloaded then be sure it isn't active.
-        /// </param>
-        public void GetBundle(string bundleName, Action<AssetBundle> onComplete, DownloadSettings downloadSettings)
-        {
-            if (Initialized == false) {
-                Debug.LogError("AssetBundleManager must be initialized before you can get a bundle.");
-                onComplete(null);
-                return;
-            }
-
-            if (useHash) bundleName = GetHashedBundleName(bundleName);
+            if (useHash)
+				bundleName = GetHashedBundleName(bundleName);
 
             AssetBundleContainer active;
 
             if (activeBundles.TryGetValue(bundleName, out active)) {
                 active.References++;
                 onComplete(active.AssetBundle);
-                return;
+                return null;
             }
 
-            DownloadInProgressContainer inProgress;
+			DownloadInProgressContainer inProgress;
 
-            if (downloadsInProgress.TryGetValue(bundleName, out inProgress)) {
-                inProgress.References++;
-                inProgress.OnComplete += onComplete;
-                return;
-            }
+			if (downloadsInProgress.TryGetValue(bundleName, out inProgress))
+			{
+				inProgress.References++;
+				inProgress.OnComplete += onComplete;
+				return inProgress.CommandWrapper;
+			}
 
-            downloadsInProgress.Add(bundleName, new DownloadInProgressContainer(onComplete));
-
-            var mainBundle = new AssetBundleDownloadCommand {
+			var mainBundle = new AssetBundleDownloadCommand {
                 BundleName = bundleName,
                 AssetDeliveryEnabled = (Manifest != null),
                 Hash = downloadSettings == DownloadSettings.UseCacheIfAvailable ? Manifest.GetAssetBundleHash(bundleName) : default(Hash128),
                 OnComplete = bundle => OnDownloadComplete(bundleName, bundle)
             };
 
-            var dependencies = Manifest.GetDirectDependencies(bundleName);
+			DownloadCommandWrapper downloadWrapper = new DownloadCommandWrapper(mainBundle);
+			downloadsInProgress.Add(bundleName, new DownloadInProgressContainer(onComplete, downloadWrapper));
+
+			var dependencies = Manifest.GetDirectDependencies(bundleName);
             var dependenciesToDownload = new List<string>();
 
             for (int i = 0; i < dependencies.Length; i++) {
@@ -433,10 +433,14 @@ namespace AssetBundles
                     if (useHash) dependencyName = GetUnhashedBundleName(dependencyName);
                     GetBundle(dependencyName, onDependenciesComplete);
                 }
-            } else {
+            }
+			else
+			{
                 handler.Handle(mainBundle);
             }
-        }
+
+			return downloadWrapper;
+		}
 
 #if AWAIT_SUPPORTED
         /// <summary>
@@ -682,12 +686,33 @@ namespace AssetBundles
         {
             public int References;
             public Action<AssetBundle> OnComplete;
+			public DownloadCommandWrapper CommandWrapper { get; private set; }
 
-            public DownloadInProgressContainer(Action<AssetBundle> onComplete)
+			public DownloadInProgressContainer(Action<AssetBundle> onComplete, DownloadCommandWrapper commandWrapper = null)
             {
                 References = 1;
                 OnComplete = onComplete;
-            }
+
+				CommandWrapper = commandWrapper;
+			}
         }
+
+		public class DownloadCommandWrapper
+		{
+			private AssetBundleDownloadCommand mCommand;
+
+			public DownloadCommandWrapper(AssetBundleDownloadCommand cmd)
+			{
+				mCommand = cmd;
+			}
+
+			public float GetDownloadProgress()
+			{
+				if (mCommand.DownloadProgressGetter != null)
+					return mCommand.DownloadProgressGetter.Invoke();
+				
+				return 0.0f;
+			}
+		}
     }
 }
