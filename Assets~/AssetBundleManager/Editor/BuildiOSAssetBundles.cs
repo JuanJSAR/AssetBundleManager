@@ -3,13 +3,15 @@ using System.IO;
 using UnityEngine;
 using UnityEditor;
 
-public class BuildiOSAssetBundles : MonoBehaviour
+public class BuildiOSAssetBundles
 {
+#if UNITY_CLOUD_BUILD
 	[InitializeOnLoadMethod]
 	static void SetupResourcesBuild()
 	{
 		UnityEditor.iOS.BuildPipeline.collectResources += CollectResources;
 	}
+#endif
 
 	static UnityEditor.iOS.Resource[] CollectResources()
 	{
@@ -52,8 +54,12 @@ public class BuildiOSAssetBundles : MonoBehaviour
 		if (Directory.Exists(fullPath))
 			Directory.Delete(fullPath, true);
 		Directory.CreateDirectory(fullPath);
-
+		
+		UnityEditor.iOS.BuildPipeline.collectResources += CollectResources;
+		
 		BuildPipeline.BuildAssetBundles(path, options, buildTarget);
+		
+		UnityEditor.iOS.BuildPipeline.collectResources -= CollectResources;
 	}
 
 }
