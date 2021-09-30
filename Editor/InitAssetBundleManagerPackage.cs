@@ -7,11 +7,13 @@ public class InitAssetBundleManagerPackage
 {
 	private const string PACKAGE_ASSETS_PATH = "Packages/com.miniit.asset-bundle-manager/Assets~";
 	
+#if UNITY_EDITOR
 	[InitializeOnLoadMethod]
 	static void InitPackage()
 	{
 		CopyDirectory(Path.GetFullPath(PACKAGE_ASSETS_PATH), Application.dataPath);
 	}
+#endif
 	
 	private static void CopyDirectory(string src, string dst)
 	{
