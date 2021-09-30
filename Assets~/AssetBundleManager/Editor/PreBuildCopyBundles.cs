@@ -18,7 +18,7 @@ class PreBuildCopyBundles : IPreprocessBuildWithReport
 	[MenuItem("Bundle/Copy Manifest to StreamingAssets")]
 	static void CopyBundlesManifest()
 	{
-		Debug.Log("[PreBuildCopyBundlesManifest] CopyBundlesManifest - start");
+		Debug.Log("[PreBuildCopyBundles] CopyBundlesManifest - start");
 		
 		string path = Path.Combine(Application.streamingAssetsPath, "Android");
 		FileUtil.DeleteFileOrDirectory(path);
@@ -34,7 +34,7 @@ class PreBuildCopyBundles : IPreprocessBuildWithReport
 		
 		Directory.CreateDirectory(path);
 		
-		Debug.Log($"[PreBuildCopyBundlesManifest] {platform}");
+		Debug.Log($"[PreBuildCopyBundles] {platform}");
 		FileUtil.CopyFileOrDirectory(Path.Combine(AssetBundles.Utility.AssetBundlesOutputPath, platform, platform), Path.Combine(path, platform));
 		FileUtil.CopyFileOrDirectory(Path.Combine(AssetBundles.Utility.AssetBundlesOutputPath, platform, $"{platform}.manifest"), Path.Combine(path, $"{platform}.manifest"));
 		
@@ -46,13 +46,13 @@ class PreBuildCopyBundles : IPreprocessBuildWithReport
 				if (string.IsNullOrEmpty(bundle))
 					continue;
 				
-				Debug.Log($"[PreBuildCopyBundlesManifest] {bundle}");
+				Debug.Log($"[PreBuildCopyBundles] {bundle}");
 				FileUtil.CopyFileOrDirectory(Path.Combine(AssetBundles.Utility.AssetBundlesOutputPath, platform, bundle), Path.Combine(path, bundle));
 				FileUtil.CopyFileOrDirectory(Path.Combine(AssetBundles.Utility.AssetBundlesOutputPath, platform, $"{bundle}.manifest"), Path.Combine(path, $"{bundle}.manifest"));
 			}
 		}
 		
-		Debug.Log("[PreBuildCopyBundlesManifest] CopyBundlesManifest - done - " + platform);
+		Debug.Log("[PreBuildCopyBundles] CopyBundlesManifest - done - " + platform);
 		
 		AssetDatabase.Refresh();
 	}
