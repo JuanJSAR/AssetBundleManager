@@ -260,11 +260,9 @@ namespace AssetBundles
 
         private void GetManifestInternal(string manifestName, uint version, int uriIndex)
         {
-			if (Application.isEditor)
-			{
-				handler = new AssetBundleDownloader(baseUri[uriIndex]);
-			}
-			else
+			handler = new AssetBundleDownloader(baseUri[uriIndex]);
+			
+			if (!Application.isEditor)
 			{
 				handler = new StreamingAssetsBundleDownloadDecorator(manifestName, platformName, handler, defaultPrioritizationStrategy);
 			}
