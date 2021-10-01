@@ -7,7 +7,7 @@ public class InitAssetBundleManagerPackage
 {
 	private const string PACKAGE_ASSETS_PATH = "Packages/com.miniit.asset-bundle-manager/Assets~";
 	
-#if UNITY_EDITOR
+#if UNITY_EDITOR && !UNITY_CLOUD_BUILD
 	[InitializeOnLoadMethod]
 	static void InitPackage()
 	{
