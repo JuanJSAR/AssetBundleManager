@@ -198,7 +198,7 @@ namespace AssetBundles
                 return;
             }
 
-            GetManifest(manifestName, getFreshManifest, bundle => onComplete(bundle != null));
+            GetManifest(manifestName, getFreshManifest, manifestBundle => onComplete(Initialized));
         }
 
         /// <summary>
