@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿#if UNITY_IOS
+
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEditor;
@@ -63,3 +65,5 @@ public class BuildiOSAssetBundles
 	}
 
 }
+
+#endif
