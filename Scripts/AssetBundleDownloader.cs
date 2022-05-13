@@ -40,12 +40,14 @@ namespace AssetBundles
 		private int activeDownloads = 0;
 		private Queue<IEnumerator> downloadQueue = new Queue<IEnumerator>();
 		private bool cachingDisabled;
+		
+		private int timeout;
 
 		/// <summary>
 		///     Creates a new instance of the AssetBundleDownloader.
 		/// </summary>
 		/// <param name="baseUri">Uri to use as the base for all bundle requests.</param>
-		public AssetBundleDownloader(string baseUri)
+		public AssetBundleDownloader(string baseUri, int timeout = 0)
 		{
 			this.baseUri = baseUri;
 
@@ -210,6 +212,9 @@ namespace AssetBundles
 					req = UnityWebRequest.GetAssetBundle(uri, cmd.Hash, 0);
 #endif
 				}
+				
+				if (timeout > 0)
+					req.timeout = timeout;
 
 #if UNITY_2017_2_OR_NEWER
 				req.SendWebRequest();

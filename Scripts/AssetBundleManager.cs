@@ -260,7 +260,7 @@ namespace AssetBundles
 
         private void GetManifestInternal(string manifestName, uint version, int uriIndex)
         {
-            handler = new AssetBundleDownloader(baseUri[uriIndex]);
+            handler = new AssetBundleDownloader(baseUri[uriIndex], 3);
             
             if (!Application.isEditor)
             {
