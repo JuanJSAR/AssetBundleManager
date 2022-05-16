@@ -50,6 +50,7 @@ namespace AssetBundles
 		public AssetBundleDownloader(string baseUri, int timeout = 0)
 		{
 			this.baseUri = baseUri;
+			this.timeout = timeout;
 
 #if UNITY_EDITOR
 			if (!Application.isPlaying)
