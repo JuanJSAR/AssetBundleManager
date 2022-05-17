@@ -214,8 +214,7 @@ namespace AssetBundles
 #endif
 				}
 				
-				if (timeout > 0)
-					req.timeout = timeout;
+				float timeleft = timeout;
 
 #if UNITY_2017_2_OR_NEWER
 				req.SendWebRequest();
@@ -227,63 +226,77 @@ namespace AssetBundles
 				while (!req.isDone)
 				{
 					yield return null;
+					
+					if (timeleft > 0)
+					{
+						timeleft -= Time.deltaTime;
+						if (timeleft <= 0)
+						{
+							req.Dispose();
+							req = null;
+							break;
+						}
+					}
 				}
-
+				
+				if (req != null) // not cancelled by timeout
+				{
 #if UNITY_2017_1_OR_NEWER
-				var isNetworkError = req.isNetworkError;
-				var isHttpError = req.isHttpError;
+					var isNetworkError = req.isNetworkError;
+					var isHttpError = req.isHttpError;
 #else
-				var isNetworkError = req.isError;
-				var isHttpError = (req.responseCode < 200 || req.responseCode > 299) && req.responseCode != 0;  // 0 indicates the cached version may have been downloaded.  If there was an error then req.isError should have a non-0 code.
+					var isNetworkError = req.isError;
+					var isHttpError = (req.responseCode < 200 || req.responseCode > 299) && req.responseCode != 0;  // 0 indicates the cached version may have been downloaded.  If there was an error then req.isError should have a non-0 code.
 #endif
 
-				if (isHttpError)
-				{
-					Debug.LogError(string.Format("Error downloading [{0}]: [{1}] [{2}]", uri, req.responseCode, req.error));
+					if (isHttpError)
+					{
+						Debug.LogError(string.Format("Error downloading [{0}]: [{1}] [{2}]", uri, req.responseCode, req.error));
 
-					if (retryCount < MAX_RETRY_COUNT && RETRY_ON_ERRORS.Contains(req.responseCode))
-					{
-						Debug.LogWarning(string.Format("Retrying [{0}] in [{1}] seconds...", uri, RETRY_WAIT_PERIOD));
-						req.Dispose();
-						activeDownloads--;
-						yield return new WaitForSeconds(RETRY_WAIT_PERIOD);
-						InternalHandle(Download(cmd, retryCount + 1));
-						yield break;
+						if (retryCount < MAX_RETRY_COUNT && RETRY_ON_ERRORS.Contains(req.responseCode))
+						{
+							Debug.LogWarning(string.Format("Retrying [{0}] in [{1}] seconds...", uri, RETRY_WAIT_PERIOD));
+							req.Dispose();
+							activeDownloads--;
+							yield return new WaitForSeconds(RETRY_WAIT_PERIOD);
+							InternalHandle(Download(cmd, retryCount + 1));
+							yield break;
+						}
 					}
-				}
-				else if (isNetworkError)
-				{
-					Debug.LogError(string.Format("Error downloading [{0}]: [{1}]", uri, req.error));
-				}
-				else
-				{
-					try
+					else if (isNetworkError)
 					{
-						bundle = DownloadHandlerAssetBundle.GetContent(req);
-					}
-					catch (Exception ex)
-					{
-						// Let the user know there was a problem and continue on with a null bundle.
-						Debug.LogError("Error processing downloaded bundle, exception follows...");
-						Debug.LogException(ex);
-					}
-				}
-
-				if (!isNetworkError && !isHttpError && string.IsNullOrEmpty(req.error) && bundle == null)
-				{
-					if (cachingDisabled)
-					{
-						Debug.LogWarning(string.Format("There was no error downloading [{0}] but the bundle is null.  Caching has already been disabled, not sure there's anything else that can be done.  Returning...", uri));
+						Debug.LogError(string.Format("Error downloading [{0}]: [{1}]", uri, req.error));
 					}
 					else
 					{
-						Debug.LogWarning(string.Format("There was no error downloading [{0}] but the bundle is null.  Assuming there's something wrong with the cache folder, retrying with cache disabled now and for future requests...", uri));
-						cachingDisabled = true;
-						req.Dispose();
-						activeDownloads--;
-						yield return new WaitForSeconds(RETRY_WAIT_PERIOD);
-						InternalHandle(Download(cmd, retryCount + 1));
-						yield break;
+						try
+						{
+							bundle = DownloadHandlerAssetBundle.GetContent(req);
+						}
+						catch (Exception ex)
+						{
+							// Let the user know there was a problem and continue on with a null bundle.
+							Debug.LogError("Error processing downloaded bundle, exception follows...");
+							Debug.LogException(ex);
+						}
+					}
+
+					if (!isNetworkError && !isHttpError && string.IsNullOrEmpty(req.error) && bundle == null)
+					{
+						if (cachingDisabled)
+						{
+							Debug.LogWarning(string.Format("There was no error downloading [{0}] but the bundle is null.  Caching has already been disabled, not sure there's anything else that can be done.  Returning...", uri));
+						}
+						else
+						{
+							Debug.LogWarning(string.Format("There was no error downloading [{0}] but the bundle is null.  Assuming there's something wrong with the cache folder, retrying with cache disabled now and for future requests...", uri));
+							cachingDisabled = true;
+							req.Dispose();
+							activeDownloads--;
+							yield return new WaitForSeconds(RETRY_WAIT_PERIOD);
+							InternalHandle(Download(cmd, retryCount + 1));
+							yield break;
+						}
 					}
 				}
 			}
