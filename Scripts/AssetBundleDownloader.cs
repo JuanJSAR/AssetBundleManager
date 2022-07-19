@@ -12,7 +12,7 @@ using UnityEngine.iOS;
 
 namespace AssetBundles
 {
-    public struct AssetBundleDownloadCommand
+    public class AssetBundleDownloadCommand
     {
         public string BundleName;
         public Hash128 Hash;
@@ -169,11 +169,13 @@ namespace AssetBundles
 			{
 				if (UnityEngine.Application.platform == RuntimePlatform.Android || UnityEngine.Application.platform == RuntimePlatform.IPhonePlayer)
 				{
-					Debug.Log("[AssetBundleDownloader] Download - Try loading from play store asset delivery");
+					if (AssetBundleManager.debugLoggingEnabled)
+						Debug.Log("[AssetBundleDownloader] Download - Try loading from play store asset delivery");
 
 					yield return PlayAssetDeliveryLoadAssetBundleCoroutine(cmd, (b) => { bundle = b; });
 
-					Debug.Log($"[AssetBundleDownloader] Download - Asset delivery loading finished. Result = {(bundle != null)}");
+					if (AssetBundleManager.debugLoggingEnabled)
+						Debug.Log($"[AssetBundleDownloader] Download - Asset delivery loading finished. Result = {(bundle != null)}");
 				}
 			}
 #endif
@@ -221,6 +223,7 @@ namespace AssetBundles
 #else
 				req.Send();
 #endif
+				
 				cmd.DownloadProgressGetter = () => req != null ? req.downloadProgress : 0.0f;
 
 				while (!req.isDone)

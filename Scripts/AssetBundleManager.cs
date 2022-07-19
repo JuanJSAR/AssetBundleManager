@@ -712,7 +712,7 @@ namespace AssetBundles
 
             public float GetDownloadProgress()
             {
-                if (mCommand.DownloadProgressGetter != null)
+                if (mCommand != null && mCommand.DownloadProgressGetter != null)
                     return mCommand.DownloadProgressGetter.Invoke();
                 
                 return 0.0f;
