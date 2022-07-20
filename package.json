@@ -2,7 +2,7 @@
     "name": "com.miniit.asset-bundle-manager",
     "displayName": "Asset Bundle Manager",
     "description": "Supports Google Play Asset Delivery (Android) and On Demand Resources (iOS).\n\nThis is an extended version of Asset Bundle Manager by Kevin Yockey (https://github.com/SadPandaStudios/AssetBundleManager).",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "unity": "2017.1",
     "license": "MIT",
     "repository": {
