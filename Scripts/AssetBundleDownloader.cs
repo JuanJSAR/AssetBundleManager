@@ -12,14 +12,14 @@ using UnityEngine.iOS;
 
 namespace AssetBundles
 {
-    public class AssetBundleDownloadCommand
+    public struct AssetBundleDownloadCommand
     {
         public string BundleName;
         public Hash128 Hash;
         public uint Version;
         public Action<AssetBundle> OnComplete;
-		public bool AssetDeliveryEnabled;
-		public Func<float> DownloadProgressGetter { get; internal set; }
+        public bool AssetDeliveryEnabled;
+        public float DownloadProgress;
 	}
 
 	public class AssetBundleDownloader : ICommandHandler<AssetBundleDownloadCommand>
@@ -84,11 +84,10 @@ namespace AssetBundles
 
 		private IEnumerator PlayAssetDeliveryLoadAssetBundleCoroutine(AssetBundleDownloadCommand cmd, Action<AssetBundle> callback)
 		{
+			cmd.DownloadProgress = 0.0f;
 
 #if UNITY_ANDROID
 			PlayAssetBundleRequest bundleRequest = PlayAssetDelivery.RetrieveAssetBundleAsync(cmd.BundleName);
-
-			cmd.DownloadProgressGetter = () => bundleRequest != null ? bundleRequest.DownloadProgress : 0.0f;
 
 			while (!bundleRequest.IsDone)
 			{
@@ -111,6 +110,8 @@ namespace AssetBundles
 
 				// Use bundleRequest.DownloadProgress to track download progress.
 				// Use bundleRequest.Status to track the status of request.
+				
+				cmd.DownloadProgress = bundleRequest.DownloadProgress;
 
 				yield return null;
 			}
@@ -132,10 +133,12 @@ namespace AssetBundles
 			// Create the request
 			OnDemandResourcesRequest request = OnDemandResources.PreloadAsync(new string[] { cmd.BundleName });
 
-			cmd.DownloadProgressGetter = () => request != null ? request.progress : 0.0f;
-
 			// Wait until request is completed
-			yield return request;
+			while (!request.isDone)
+			{
+				cmd.DownloadProgress = request.progress;
+				yield return null;
+			}
 
 			AssetBundle bundle = null;
 
@@ -224,10 +227,10 @@ namespace AssetBundles
 				req.Send();
 #endif
 				
-				cmd.DownloadProgressGetter = () => req != null ? req.downloadProgress : 0.0f;
-
 				while (!req.isDone)
 				{
+					cmd.DownloadProgress = req.downloadProgress;
+					
 					yield return null;
 					
 					if (timeleft > 0)
@@ -306,11 +309,11 @@ namespace AssetBundles
 
 			if (bundle != null)
 			{
-				cmd.DownloadProgressGetter = () => 1.0f;
+				cmd.DownloadProgress = 1.0f;
 			}
 			else
 			{
-				cmd.DownloadProgressGetter = () => 0.0f;
+				cmd.DownloadProgress = 0.0f;
 			}
 
 			try
