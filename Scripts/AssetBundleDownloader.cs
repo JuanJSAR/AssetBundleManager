@@ -12,7 +12,7 @@ using UnityEngine.iOS;
 
 namespace AssetBundles
 {
-    public struct AssetBundleDownloadCommand
+    public class AssetBundleDownloadCommand
     {
         public string BundleName;
         public Hash128 Hash;

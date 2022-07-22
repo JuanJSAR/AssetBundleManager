@@ -712,7 +712,7 @@ namespace AssetBundles
 
             public float GetDownloadProgress()
             {
-				return mCommand.DownloadProgress;
+				return mCommand?.DownloadProgress ?? 0.0f;
             }
         }
     }
