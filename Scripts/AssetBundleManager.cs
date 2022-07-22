@@ -370,7 +370,7 @@ namespace AssetBundles
         ///     Important!  If the bundle is currently "active" (it has not been unloaded) then the active bundle will be used
         ///     regardless of this setting.  If it's important that a new version is downloaded then be sure it isn't active.
         /// </param>
-        public DownloadCommandWrapper GetBundle(string bundleName, Action<AssetBundle> onComplete, DownloadSettings downloadSettings)
+        public DownloadProgressWrapper GetBundle(string bundleName, Action<AssetBundle> onComplete, DownloadSettings downloadSettings)
         {
             if (Initialized == false) {
                 Debug.LogError("AssetBundleManager must be initialized before you can get a bundle.");
@@ -395,17 +395,19 @@ namespace AssetBundles
             {
                 inProgress.References++;
                 inProgress.OnComplete += onComplete;
-                return inProgress.CommandWrapper;
+                return inProgress.ProgressWrapper;
             }
+			
+			DownloadProgressWrapper downloadWrapper = new DownloadProgressWrapper();
 
             var mainBundle = new AssetBundleDownloadCommand {
                 BundleName = bundleName,
                 AssetDeliveryEnabled = (Manifest != null),
                 Hash = downloadSettings == DownloadSettings.UseCacheIfAvailable ? Manifest.GetAssetBundleHash(bundleName) : default(Hash128),
-                OnComplete = bundle => OnDownloadComplete(bundleName, bundle)
+                OnComplete = bundle => OnDownloadComplete(bundleName, bundle),
+				OnProgress = downloadWrapper.OnProgress,
             };
-
-            DownloadCommandWrapper downloadWrapper = new DownloadCommandWrapper(mainBundle);
+			
             downloadsInProgress.Add(bundleName, new DownloadInProgressContainer(onComplete, downloadWrapper));
 
             var dependencies = Manifest.GetDirectDependencies(bundleName);
@@ -690,30 +692,30 @@ namespace AssetBundles
         {
             public int References;
             public Action<AssetBundle> OnComplete;
-            public DownloadCommandWrapper CommandWrapper { get; private set; }
+            public DownloadProgressWrapper ProgressWrapper { get; private set; }
 
-            public DownloadInProgressContainer(Action<AssetBundle> onComplete, DownloadCommandWrapper commandWrapper = null)
+            public DownloadInProgressContainer(Action<AssetBundle> onComplete, DownloadProgressWrapper progressWrapper = null)
             {
                 References = 1;
                 OnComplete = onComplete;
 
-                CommandWrapper = commandWrapper;
+                ProgressWrapper = progressWrapper;
             }
         }
 
-        public class DownloadCommandWrapper
+        public class DownloadProgressWrapper
         {
-            private AssetBundleDownloadCommand mCommand;
-
-            public DownloadCommandWrapper(AssetBundleDownloadCommand cmd)
-            {
-                mCommand = cmd;
-            }
-
+            private float mProgress = 0.0f;
+			
             public float GetDownloadProgress()
             {
-				return mCommand?.DownloadProgress ?? 0.0f;
+				return mProgress;
             }
+			
+			internal void OnProgress(float progress)
+			{
+				mProgress = progress;
+			}
         }
     }
 }

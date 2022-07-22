@@ -12,14 +12,14 @@ using UnityEngine.iOS;
 
 namespace AssetBundles
 {
-    public class AssetBundleDownloadCommand
+    public struct AssetBundleDownloadCommand
     {
         public string BundleName;
         public Hash128 Hash;
         public uint Version;
         public Action<AssetBundle> OnComplete;
+		public Action<float> OnProgress;
         public bool AssetDeliveryEnabled;
-        public float DownloadProgress;
 	}
 
 	public class AssetBundleDownloader : ICommandHandler<AssetBundleDownloadCommand>
@@ -84,8 +84,6 @@ namespace AssetBundles
 
 		private IEnumerator PlayAssetDeliveryLoadAssetBundleCoroutine(AssetBundleDownloadCommand cmd, Action<AssetBundle> callback)
 		{
-			cmd.DownloadProgress = 0.0f;
-
 #if UNITY_ANDROID
 			PlayAssetBundleRequest bundleRequest = PlayAssetDelivery.RetrieveAssetBundleAsync(cmd.BundleName);
 
@@ -111,7 +109,7 @@ namespace AssetBundles
 				// Use bundleRequest.DownloadProgress to track download progress.
 				// Use bundleRequest.Status to track the status of request.
 				
-				cmd.DownloadProgress = bundleRequest.DownloadProgress;
+				cmd.OnProgress?.Invoke(bundleRequest.DownloadProgress);
 
 				yield return null;
 			}
@@ -136,7 +134,7 @@ namespace AssetBundles
 			// Wait until request is completed
 			while (!request.isDone)
 			{
-				cmd.DownloadProgress = request.progress;
+				cmd.OnProgress?.Invoke(request.progress);
 				yield return null;
 			}
 
@@ -227,9 +225,11 @@ namespace AssetBundles
 				req.Send();
 #endif
 				
+				float prevProgress = 0.0f;
+				
 				while (!req.isDone)
 				{
-					cmd.DownloadProgress = req.downloadProgress;
+					cmd.OnProgress?.Invoke(req.downloadProgress);
 					
 					yield return null;
 					
@@ -238,9 +238,17 @@ namespace AssetBundles
 						timeleft -= Time.deltaTime;
 						if (timeleft <= 0)
 						{
-							req.Dispose();
-							req = null;
-							break;
+							if (req.downloadProgress > prevProgress)
+							{
+								prevProgress = req.downloadProgress;
+								timeleft = timeout;
+							}
+							else // no download progress
+							{							
+								req.Dispose();
+								req = null;
+								break;
+							}
 						}
 					}
 				}
@@ -309,11 +317,11 @@ namespace AssetBundles
 
 			if (bundle != null)
 			{
-				cmd.DownloadProgress = 1.0f;
+				cmd.OnProgress?.Invoke(1.0f);
 			}
 			else
 			{
-				cmd.DownloadProgress = 0.0f;
+				cmd.OnProgress?.Invoke(0.0f);
 			}
 
 			try
