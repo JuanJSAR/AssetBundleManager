@@ -120,7 +120,11 @@ namespace AssetBundles
 				// and InsufficientStorage, you may prompt the user to check their
 				// connection settings or check their storage space, respectively, then
 				// try again.
-				yield return null;
+				
+				Debug.LogError($"[AssetBundleDownloader] Asset delivery loading failed: {bundleRequest.Error}");
+				
+				callback?.Invoke(null);
+				yield break;
 			}
 
 			// Request was successful. Retrieve AssetBundle from request.AssetBundle.
