@@ -180,7 +180,7 @@ namespace AssetBundles
 					yield return PlayAssetDeliveryLoadAssetBundleCoroutine(cmd, (b) => { bundle = b; });
 
 					if (AssetBundleManager.debugLoggingEnabled)
-						Debug.Log($"[AssetBundleDownloader] Download - Asset delivery loading finished. Result = {(bundle != null)}");
+						Debug.Log($"[AssetBundleDownloader] Download ({cmd.BundleName}) - Asset delivery loading finished. Result = {(bundle != null)} {(bundle != null ? bundle.name : "")}");
 				}
 			}
 #endif
