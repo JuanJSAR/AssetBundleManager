@@ -91,6 +91,9 @@ namespace AssetBundles
 			{
 				if (bundleRequest.Status == AssetDeliveryStatus.WaitingForWifi)
 				{
+					if (AssetBundleManager.debugLoggingEnabled)
+						Debug.Log("[AssetBundleDownloader] AssetDelivery - WaitingForWifi. ShowCellularDataConfirmation");
+					
 					var userConfirmationOperation = PlayAssetDelivery.ShowCellularDataConfirmation();
 
 					// Wait for confirmation dialog action.
@@ -99,16 +102,19 @@ namespace AssetBundles
 					if ((userConfirmationOperation.Error != AssetDeliveryErrorCode.NoError) ||
 					   (userConfirmationOperation.GetResult() != ConfirmationDialogResult.Accepted))
 					{
-						// The user did not accept the confirmation - handle as needed.
+						// The user did not accept the confirmation
+						
+						if (AssetBundleManager.debugLoggingEnabled)
+							Debug.Log("[AssetBundleDownloader] AssetDelivery - The user did not accept the confirmation");
+						
+						callback?.Invoke(null);
+						yield break;
 					}
 
 					// Wait for Wi-Fi connection OR confirmation dialog acceptance before moving on.
 					yield return new WaitUntil(() => bundleRequest.Status != AssetDeliveryStatus.WaitingForWifi);
 				}
 
-				// Use bundleRequest.DownloadProgress to track download progress.
-				// Use bundleRequest.Status to track the status of request.
-				
 				cmd.OnProgress?.Invoke(bundleRequest.DownloadProgress);
 
 				yield return null;
